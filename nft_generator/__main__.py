@@ -5,8 +5,8 @@ import argparse
 import random
 
 
-from kernels import *
-from Printers import *
+from nft_generator.kernels import *
+from nft_generator.Printers import *
 
 
 def init_argparser() -> argparse.Namespace:

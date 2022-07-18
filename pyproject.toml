@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nft-generator"
+version = "1.0.4"
+authors = [
+  { name="Quan Fan", email="fanquan@yuzj010.com" },
+]
+description = "NFT Generator"
+readme = "README.md"
+#license = { file="LICENSE" }
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "opencv-python",
+    "numpy",
+    "multipledispatch",
+]
+
+#[project.urls]
+#"Homepage" = "https://github.com/pypa/sampleproject"
+#"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+
+#[project.scripts]
+#cli-name = "nft_generator.__main__:main"
+
+[tool.setuptools.packages.find]
+#where = ["nft_generator"]
+include = ["nft_generator"]
+#exclude = ["output"]

@@ -3,7 +3,7 @@ import numpy as np
 import os
 from multipledispatch import dispatch
 
-from Printers import *
+from nft_generator.Printers import *
 
 
 def check_and_add_alpha_channel_png(img: np.ndarray) -> np.ndarray:

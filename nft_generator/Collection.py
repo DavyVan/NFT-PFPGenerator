@@ -1,8 +1,10 @@
 import argparse
 import os
+import json
+import time
 
 from nft_generator.Printers import *
-from nft_generator.constants import SUPPORTED_OUTPUT_FORMAT
+from nft_generator.constants import SUPPORTED_OUTPUT_FORMAT, SUPPORTED_METADATA_STD
 from nft_generator.Layer import Layer
 from nft_generator.Combination import Combination
 
@@ -58,7 +60,13 @@ class Collection:
         self.subdir_sep = args.sep
         print_info("Layer folder separator: " + ("<space>" if self.subdir_sep == " " else self.subdir_sep))
 
-        # TODO: -m & -n
+        self.metadata_standard = args.meta_std.lower()
+        if self.metadata_standard not in SUPPORTED_METADATA_STD:
+            raise ValueError("Collection: the metadata standard is not supported.")
+
+        self.metadata_name = args.collection_name
+        if self.metadata_name == "":
+            raise ValueError("Collection: collection name cannot be empty.")
 
         print_ok_with_prefix("Parsing arguments...")
 
@@ -137,13 +145,42 @@ class Collection:
             combo.commit()
             i += 1
 
-        print_ok_with_prefix("Generate combinations...")
+        print_ok_with_prefix("Generating combinations...")
 
     def render(self):
+        start = time.time_ns() // 1000000
         for i, c in enumerate(self.combinations):
-            print(i)
+            # print(i)
             c.render(self.output_path, i+1, self.output_format)
+        end = time.time_ns() // 1000000
+        print_info("Time spent: " + str(end - start) + "ms")
+        print_ok_with_prefix("Rendered all images...")
 
     def print_stat(self):
         for l in self.layers:
             l.print_stat()
+
+    def generate_metadata(self):
+        # check metadata output path
+        metadata_output_path = os.path.join(self.output_path, "metadata")
+        if not os.path.isdir(metadata_output_path):
+            os.makedirs(metadata_output_path)
+
+        metadata_all = dict()
+        metadata_all["name"] = self.metadata_name
+        metadata_all["generator"] = "The NFT Generator"
+        metadata_all["generator_author"] = "Quan Fan @ 2M/WM"
+        metadata_collection = list()
+
+        for i, c in enumerate(self.combinations):
+            m = c.generate_metadata(self.metadata_standard, self.metadata_name, "", i+1, self.output_format)
+            metadata_collection.append(m)
+            # write into separate file
+            with open(os.path.join(self.output_path, "metadata", str(i+1) + ".json"), "w") as fd:
+                json.dump(m, fd, indent=2, ensure_ascii=False)
+
+        metadata_all["collection"] = metadata_collection
+        with open(os.path.join(self.output_path, "metadata", "metadata.json"), "w") as fd:
+            json.dump(metadata_all, fd, indent=2, ensure_ascii=False)
+
+        print_ok_with_prefix("Generating metadata...")

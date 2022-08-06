@@ -107,6 +107,7 @@ def img_merge_kernel_ndarray_ndarray(file_back: np.ndarray, file_front: np.ndarr
 
     return img_out
 
+
 @dispatch(str, str)
 def img_merge(file_back: str, file_front: str) -> np.ndarray:
     """

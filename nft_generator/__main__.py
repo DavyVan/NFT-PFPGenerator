@@ -1,10 +1,8 @@
-import sys
-
 from nft_generator.Collection import Collection
 
 
 def main():
-    collection = Collection(sys.argv)
+    collection = Collection()
     collection.generate()
     collection.render()
     collection.print_stat()

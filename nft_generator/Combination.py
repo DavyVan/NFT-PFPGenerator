@@ -3,6 +3,7 @@ import os
 
 from nft_generator.LayerItem import LayerItem
 from nft_generator.kernels import img_merge
+from nft_generator.Config import Config
 
 
 class Combination:
@@ -39,7 +40,7 @@ class Combination:
         for it in self.items:
             it.increase_counter()
 
-    def render(self, output_path: str, output_no: int, output_format: str):
+    def render(self, output_no: int, config: Config):
         output_img = None
         if len(self.items) == 0:
             raise ValueError("Combination: Empty combination")
@@ -52,35 +53,35 @@ class Combination:
                     output_img = img_merge(output_img, self.items[i].path)
 
         # write to file
-        full_path = os.path.join(output_path, str(output_no)) + "." + output_format
+        full_path = os.path.join(config.output_path, str(output_no)) + "." + config.output_format
         cv.imwrite(full_path, output_img)
 
-    def __generate_metadata_enjin(self, basename: str, description: str, no: int, output_format: str) -> dict:
+    def __generate_metadata_enjin(self, no: int, config: Config) -> dict:
         ret = dict()
-        ret["name"] = "%s #%d" % (basename, no)
-        ret["description"] = description
-        ret["image"] = "%d.%s" % (no, output_format)
+        ret["name"] = "%s #%d" % (config.metadata_name, no)
+        ret["description"] = ""
+        ret["image"] = "%d.%s" % (no, config.output_format)
         props = dict()
         for it in self.items:
             props[it.layer_name] = it.item_name
         ret["properties"] = props
         return ret
 
-    def __generate_metadata_opensea(self, basename: str, description: str, no: int, output_format: str) -> dict:
+    def __generate_metadata_opensea(self, no: int, config: Config) -> dict:
         ret = dict()
-        ret["name"] = "%s #%d" % (basename, no)
-        ret["description"] = description
-        ret["image"] = "%d.%s" % (no, output_format)
+        ret["name"] = "%s #%d" % (config.metadata_name, no)
+        ret["description"] = ""
+        ret["image"] = "%d.%s" % (no, config.output_format)
         attrs = list()
         for it in self.items:
             attrs.append({"trait_type": it.layer_name, "value": it.item_name})
         ret["attributes"] = attrs
         return ret
 
-    def generate_metadata(self, std: str, basename: str, description: str, no: int, output_format: str) -> dict:
-        if std == "enjin":
-            return self.__generate_metadata_enjin(basename, description, no, output_format)
-        elif std == "opensea":
-            return self.__generate_metadata_opensea(basename, description, no, output_format)
+    def generate_metadata(self, no: int, config: Config) -> dict:
+        if config.metadata_standard == "enjin":
+            return self.__generate_metadata_enjin(no, config)
+        elif config.metadata_standard == "opensea":
+            return self.__generate_metadata_opensea(no, config)
         else:
             raise NotImplementedError("Combination: metadata standard is not implemented.")

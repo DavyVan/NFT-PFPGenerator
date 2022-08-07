@@ -1,77 +1,21 @@
-import argparse
 import os
 import json
 import time
 
 from nft_generator.Printers import *
-from nft_generator.constants import SUPPORTED_OUTPUT_FORMAT, SUPPORTED_METADATA_STD
+from nft_generator.Config import Config
 from nft_generator.Layer import Layer
 from nft_generator.Combination import Combination
 
 
 class Collection:
 
-    def __init__(self, argv):
-        self.path = ""                  # type: str
-        self.count = 0                  # type: int
-        self.output_format = ""         # type: str
-        self.output_path = ""           # type: str
+    def __init__(self):
+        self.config = Config()          # type: Config
         self.layers = []                # type: list[Layer]
-        self.subdir_sep = ""            # type: str
         self.combinations = []          # type: list[Combination]
 
-        self.__parse_args(argv)
         self.__check_and_get_subdirs()
-
-    def __parse_args(self, argv):
-        parser = argparse.ArgumentParser()
-        parser.add_argument("path",
-                            help="The path of working directory where you store all the resource images. Use '\\\\' on Windows.",
-                            type=str)
-        parser.add_argument("count", help="The total number of NFTs you want to generate.", type=int)
-        parser.add_argument("-of", "--output-format", help="The output format. Default: png", default="png", type=str)
-        parser.add_argument("-o", "--output-path", help="The output path. Default: current working directory",
-                            default=".", type=str)
-        parser.add_argument("--sep", help="The separator of layer folders. Default: <space>", default=" ", type=str)
-        parser.add_argument("-m", "--meta-std", help="The metadata standard e.g. enjin or opensea. Default: opensea", default="opensea", type=str)
-        parser.add_argument("-n", "--collection-name", help="The collection name.", default="Test-NFT", type=str)
-        args = parser.parse_args()
-
-        self.path = args.path       # will verify later
-        print_info("Path: " + self.path)
-
-        self.count = args.count
-        if self.count <= 0:
-            raise ValueError("Collection: count must be greater than zero.")
-        print_info("Count: " + str(self.count))
-
-        self.output_format = args.output_format
-        if not self.__is_supported_output_format(self.output_format):
-            raise ValueError("Collection: output format " + self.output_format + " is not supported.")
-        print_info("Output_format: " + str(self.output_format).upper())
-
-        self.output_path = args.output_path
-        if self.output_path == ".":
-            self.output_path = os.path.join(os.getcwd(), "output")
-        if not os.path.isdir(self.output_path):
-            os.makedirs(self.output_path)
-        print_info("Output_path (created if not exists): " + self.output_path)
-
-        self.subdir_sep = args.sep
-        print_info("Layer folder separator: " + ("<space>" if self.subdir_sep == " " else self.subdir_sep))
-
-        self.metadata_standard = args.meta_std.lower()
-        if self.metadata_standard not in SUPPORTED_METADATA_STD:
-            raise ValueError("Collection: the metadata standard is not supported.")
-
-        self.metadata_name = args.collection_name
-        if self.metadata_name == "":
-            raise ValueError("Collection: collection name cannot be empty.")
-
-        print_ok_with_prefix("Parsing arguments...")
-
-    def __is_supported_output_format(self, ext: str) -> bool:
-        return ext.lower() in SUPPORTED_OUTPUT_FORMAT
 
     def __check_and_get_subdirs(self):
         """
@@ -81,19 +25,19 @@ class Collection:
         """
 
         # check the root dir
-        if not os.path.isdir(self.path):
+        if not os.path.isdir(self.config.path):
             raise FileNotFoundError("Collection: The base directory does not exist.")
 
         # get all the entries, including files and subdirs
-        entries = os.listdir(self.path)
+        entries = os.listdir(self.config.path)
         entry_selected = []         # type: list[Layer]
         for entry in entries:
             # only pick directories
-            if not os.path.isdir(os.path.join(self.path, entry)):
+            if not os.path.isdir(os.path.join(self.config.path, entry)):
                 continue
 
             # retrieve the layer number and layer name
-            splited = entry.split(self.subdir_sep, 1)
+            splited = entry.split(self.config.subdir_sep, 1)
             if len(splited) == 0:
                 continue
             # Check the first element
@@ -108,7 +52,7 @@ class Collection:
                 layer_name = splited[1]
 
             # append new Layer
-            entry_selected.append(Layer(layer_number, layer_name, os.path.join(self.path, entry)))
+            entry_selected.append(Layer(layer_number, layer_name, os.path.join(self.config.path, entry)))
 
         if len(entry_selected) == 0:
             raise FileNotFoundError("Collection: did not find available folders")
@@ -132,7 +76,7 @@ class Collection:
     def generate(self):
         combinations_set = set()
         i = 0
-        while i < self.count:
+        while i < self.config.count:
             combo = Combination()
             for l in self.layers:
                 combo.add_item(l.get_item())
@@ -151,7 +95,7 @@ class Collection:
         start = time.time_ns() // 1000000
         for i, c in enumerate(self.combinations):
             # print(i)
-            c.render(self.output_path, i+1, self.output_format)
+            c.render(i+1, self.config)
         end = time.time_ns() // 1000000
         print_info("Time spent: " + str(end - start) + "ms")
         print_ok_with_prefix("Rendered all images...")
@@ -162,25 +106,25 @@ class Collection:
 
     def generate_metadata(self):
         # check metadata output path
-        metadata_output_path = os.path.join(self.output_path, "metadata")
+        metadata_output_path = os.path.join(self.config.output_path, "metadata")
         if not os.path.isdir(metadata_output_path):
             os.makedirs(metadata_output_path)
 
         metadata_all = dict()
-        metadata_all["name"] = self.metadata_name
+        metadata_all["name"] = self.config.metadata_name
         metadata_all["generator"] = "The NFT Generator"
         metadata_all["generator_author"] = "Quan Fan @ 2M/WM"
         metadata_collection = list()
 
         for i, c in enumerate(self.combinations):
-            m = c.generate_metadata(self.metadata_standard, self.metadata_name, "", i+1, self.output_format)
+            m = c.generate_metadata(i+1, self.config)
             metadata_collection.append(m)
             # write into separate file
-            with open(os.path.join(self.output_path, "metadata", str(i+1) + ".json"), "w") as fd:
+            with open(os.path.join(self.config.output_path, "metadata", str(i+1) + ".json"), "w") as fd:
                 json.dump(m, fd, indent=2, ensure_ascii=False)
 
         metadata_all["collection"] = metadata_collection
-        with open(os.path.join(self.output_path, "metadata", "metadata.json"), "w") as fd:
+        with open(os.path.join(self.config.output_path, "metadata", "metadata.json"), "w") as fd:
             json.dump(metadata_all, fd, indent=2, ensure_ascii=False)
 
         print_ok_with_prefix("Generating metadata...")

@@ -1,6 +1,8 @@
 import os
 import json
 import time
+from typing import Union
+from multiprocessing.connection import Connection
 
 from nft_generator.Printers import *
 from nft_generator.Config import Config
@@ -10,10 +12,11 @@ from nft_generator.Combination import Combination
 
 class Collection:
 
-    def __init__(self):
-        self.config = Config()          # type: Config
-        self.layers = []                # type: list[Layer]
-        self.combinations = []          # type: list[Combination]
+    def __init__(self, jsonstr: str = None):
+        self.config = Config(jsonstr)       # type: Config
+        self.layers = []                    # type: list[Layer]
+        self.combinations = []              # type: list[Combination]
+        self.__progress = 0                 # type: int
 
         self.__check_and_get_subdirs()
 
@@ -91,12 +94,18 @@ class Collection:
 
         print_ok_with_prefix("Generating combinations...")
 
-    def render(self):
+    def render(self, fd: Connection = None):
         start = time.time_ns() // 1000000
         for i, c in enumerate(self.combinations):
             # print(i)
             c.render(i+1, self.config)
+            self.__progress += 1
+            if fd is not None:
+                fd.send(i+1)
         end = time.time_ns() // 1000000
+        if fd is not None:
+            fd.send(-1)
+            fd.close()
         print_info("Time spent: " + str(end - start) + "ms")
         print_ok_with_prefix("Rendered all images...")
 
@@ -128,3 +137,18 @@ class Collection:
             json.dump(metadata_all, fd, indent=2, ensure_ascii=False)
 
         print_ok_with_prefix("Generating metadata...")
+
+    def get_progress(self) -> (int, int):
+        """
+
+        :return: (progress, total)
+        """
+        return self.__progress, self.config.count
+
+    def inc_progress(self) -> (int, int):
+        """
+        Increase the progress counter and return it.
+        :return: (increased_progress, total)
+        """
+        self.__progress += 1
+        return self.__progress, self.config.count

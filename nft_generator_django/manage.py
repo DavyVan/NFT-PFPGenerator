@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+# Must call freeze_support() to work with PyInstaller
+from multiprocessing import freeze_support
+freeze_support()
 import os
 import sys
 

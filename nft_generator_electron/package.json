@@ -1,0 +1,19 @@
+{
+  "name": "nft_generator_electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "author": "Quan Fan @2M/WM",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@electron/remote": "^2.0.8",
+    "animate.css": "^4.1.1",
+    "axios": "^0.27.2",
+    "bootstrap": "^5.2.0",
+    "electron": "^20.0.1"
+  }
+}

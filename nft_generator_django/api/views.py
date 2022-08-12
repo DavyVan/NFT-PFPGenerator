@@ -1,6 +1,7 @@
 import json
 import sys
 sys.path.append("../../")
+import os
 from django.http import JsonResponse, HttpRequest
 
 from .ContextManager import ContextManager
@@ -46,3 +47,11 @@ def check(request: HttpRequest):
         ret["data"] = data
 
     return JsonResponse(ret)
+
+
+def ping(request: HttpRequest):
+    return JsonResponse({
+        "success": True,
+        "message": "",
+        "data": {"pid": os.getpid()}
+    })

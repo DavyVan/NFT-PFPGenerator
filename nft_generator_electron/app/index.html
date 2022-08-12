@@ -36,8 +36,8 @@
     </head>
     <body>
         <div class="container">
-            <div class="overlay" id="overlay" hidden>
-                <div class="align-middle text-center">启动中……<br>这个过程大约需要十秒钟</div>
+            <div class="overlay" id="overlay">
+                <div class="align-middle text-center">正在启动图像处理服务……<br>这个过程大约需要十秒钟</div>
             </div>
             <div class="row mt-3">
                 <div class="input-group col">
@@ -93,7 +93,7 @@
                 </div>
             </div>
             <div class="fixed-bottom bg-light d-flex align-items-center" style="height: 30px;">
-                <span class="spinner-grow text-success spinner-grow-sm m-2" role="status" id="server-status-spinner"></span>
+                <span class="spinner-grow text-danger spinner-grow-sm m-2" role="status" id="server-status-spinner"></span>
                 <span class="p-0 text-black-50" id="server-status-span">图像处理服务状态未知</span>
             </div>
         </div>

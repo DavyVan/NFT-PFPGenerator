@@ -27,17 +27,22 @@ let alertMsgSpanEl = document.getElementById("alert-msg-span");
 
 /* ------------------------------- NFGT Server ------------------------------ */
 
-// setInterval(() => {
-//     axios.get(baseURL + "ping").then((response) => {
-//         if (response.data.success == true) {
-//             // console.log("index: NFGT Server is running. pid: %d", response.data.data.pid);
-//             ipcRenderer.invoke("pid", response.data.data.pid);
-//             overlayDivEl.hidden = true;
-//         } else {
-//             console.log(response);
-//         }
-//     });
-// }, 5*1000);
+setInterval(() => {
+    try {
+        axios.get(baseURL + "ping").then((response) => {
+            // console.log("index: NFGT Server is running. pid: %d", response.data.data.pid);
+            ipcRenderer.invoke("pid", response.data.data.pid);
+            overlayDivEl.hidden = true;
+            serverStatusSpinnerEl.classList.remove("text-danger");
+            serverStatusSpinnerEl.classList.add("text-success");
+            serverStatusSpanEl.innerHTML = "图像处理服务运行中";
+        });
+    } catch (error) {
+        serverStatusSpinnerEl.classList.remove("text-success");
+        serverStatusSpinnerEl.classList.add("text-danger");
+        serverStatusSpanEl.innerHTML = "图像处理服务状态未知";
+    }
+}, 5*1000);
 
 
 /* -------------------------------- Listeners ------------------------------- */
@@ -100,7 +105,12 @@ function removeAlert() {
     we only check the existence of the input fields. The correctness of them will be
     checked on the server side.
 */
-startBtnEl.addEventListener("click", () => {
+startBtnEl.addEventListener("click", async () => {
+    startBtnEl.setAttribute("disabled", true);
+    // reset progress bar
+    progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-success", "bg-danger");
+    progressBarEl.innerHTML = "";
+
     let inputFolder = inputFolderInputEl.value;
     let outputFolder = outputFolderInputEl.value;
     let collectionName = collectionNameInputEl.value;
@@ -138,19 +148,72 @@ startBtnEl.addEventListener("click", () => {
     console.log("%s %s", enableMetadata, metadataStd);
     console.log(count);
 
-    // TODO: send request
+    try {
+        let response = await axios.post(baseURL + "new", {
+            "context_id": "233",
+            "config": {
+                "path": inputFolder,
+                "count": Number(count),
+                "output-path": outputFolder,
+                "sep": ".",
+                "meta-std": metadataStd,
+                "collection-name": collectionName
+            },
+            "enable_render": true,
+            "enable_metadata": enableMetadata
+        });
 
-    // TODO: check progress
+        if (response.data.success) {
+            // check progress
+            let job = setInterval(() => {
+                try {
+                    axios.post(baseURL + "check", {"context_id": "233"}).then((jobResponse) => {
+                        console.log(jobResponse.data);
+                        if (jobResponse.data.success) {     // if the request success (not the NFT generation)
+                            // set progress bar anyway
+                            let progress = jobResponse.data.data.progress;
+                            let total = jobResponse.data.data.total;
+                            console.log("progress=%d total=%d", progress, total);
+                            let percentage = Math.floor(progress/total*100);
+                            console.log("percentage=%d", percentage);
+                            progressBarEl.style.width = `${percentage}%`;
+                            progressBarEl.innerHTML = `${progress}/${total}`;
 
-    let i = 0;
-    let job = setInterval(() => {
-        progressBarEl.style.width = `${i}%`;
-        progressBarEl.innerHTML = `${i}/100`;
-        
-        if (i == 100) {
-            clearInterval(job);
+                            if (jobResponse.data.data.executing) {      // if the NFT generation is still running
+                                if (progress == total) {        // metadata may take some time
+                                    progressBarEl.classList.add(["progress-bar-striped", "progress-bar-animated"]);
+                                }
+                            } else {
+                                if (jobResponse.data.data.success) {        // if the NFT generation is finished successfully
+                                    startBtnEl.removeAttribute("disabled");
+                                    progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated");
+                                    progressBarEl.classList.add("bg-success");
+                                    progressBarEl.innerHTML += " == 执行成功";
+                                } else {        // if the NFT generation failed
+                                    startBtnEl.removeAttribute("disabled");
+                                    progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated");
+                                    progressBarEl.classList.add("bg-danger");
+                                    progressBarEl.innerHTML += " == 执行失败";
+                                    setAlert(jobResponse.data.data.error_msg);
+                                }
+                                clearInterval(job);
+                            }
+                        } else {        // if the request failed
+                            setAlert(jobResponse.data.message);
+                            // and do nothing, it will retry
+                        }
+                    });
+                } catch (jobErr) {
+                    console.log(jobErr);
+                    // and do nothing, it will retry
+                }
+            }, 1000);
         } else {
-            i++;
+            setAlert(response.data.message);
+            startBtnEl.removeAttribute("disabled");
         }
-    }, 100);
+    } catch (e) {
+        setAlert(e.message);
+        startBtnEl.removeAttribute("disabled");
+    }
 });

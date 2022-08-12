@@ -3,6 +3,7 @@
 const child_process = require("child_process");
 const util = require("node:util");
 const execFile = util.promisify(child_process.execFile);
+const path = require("path");
 const { app, BrowserWindow, ipcMain} = require("electron");
 const remote_main = require("@electron/remote/main");
 remote_main.initialize();
@@ -31,7 +32,7 @@ const run = () => {
 };
 
 const run_server = async () => {
-    nftgServerChildProcess = execFile("./app/bin/nftg_server.exe", ["runserver", "23333", "--noreload"], (error) => {
+    nftgServerChildProcess = execFile(path.resolve(app.getAppPath() + "/app/bin/nftg_server.exe"), ["runserver", "23333", "--noreload"], (error) => {
         console.log("NFTG Server terminated.");
         if (error) {
             console.log(error);
@@ -42,7 +43,7 @@ const run_server = async () => {
 
 app.whenReady().then(() => {
     run();
-    // run_server();
+    run_server();
 });
 
 app.on("before-quit", (event) => {

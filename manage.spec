@@ -5,8 +5,8 @@ block_cipher = None
 
 
 a = Analysis(
-    ['nft_generator_django\\manage.py'],
-    pathex=[".", ".\\nft_generator_django\\nft_generator_django"],
+    ['nft_generator_django/manage.py'],
+    pathex=[".", "./nft_generator_django/nft_generator_django"],
     binaries=[],
     datas=[],
     hiddenimports=["nft_generator.Collection", "api.urls"],

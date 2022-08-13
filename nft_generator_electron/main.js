@@ -47,8 +47,10 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", (event) => {
-    process.kill(pid, "SIGINT");
-    console.log("NFTG Server Killed");
+    if (pid != -1) {
+        process.kill(pid, "SIGINT");
+        console.log("NFTG Server Killed");
+    }
 });
 
 ipcMain.handle("pid", (event, _pid) => {

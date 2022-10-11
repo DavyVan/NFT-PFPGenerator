@@ -6,6 +6,15 @@ from multipledispatch import dispatch
 from nft_generator.Printers import *
 
 
+def imread_utf8(file: str) -> np.ndarray:
+    """
+    opencv底层库在简体中文Windows下工作异常，所以使用此方法
+    :param file: 
+    :return:
+    """
+    img = cv.imdecode(np.fromfile(file, dtype=np.uint8), cv.IMREAD_UNCHANGED)
+    return check_and_add_alpha_channel_png(img)
+
 def check_and_add_alpha_channel_png(img: np.ndarray) -> np.ndarray:
     x, y, chs = img.shape
     if chs == 4:
@@ -23,10 +32,9 @@ def img_merge_kernel_png_png(file_back: str, file_front: str) -> np.ndarray:
     :param file_front:
     :return:
     """
-    img_front = cv.imread(file_front, cv.IMREAD_UNCHANGED)
-    img_front = check_and_add_alpha_channel_png(img_front)
-    img_back = cv.imread(file_back, cv.IMREAD_UNCHANGED)
-    img_back = check_and_add_alpha_channel_png(img_back)
+
+    img_front = imread_utf8(file_front)
+    img_back = imread_utf8(file_back)
 
     try:
         return img_merge_kernel_ndarray_ndarray(img_back, img_front)
@@ -45,8 +53,8 @@ def img_merge_kernel_ndarray_png(file_back: np.ndarray, file_front: str) -> np.n
     :param file_front: 图片路径
     :return:
     """
-    img_front = cv.imread(file_front, cv.IMREAD_UNCHANGED)
-    img_front = check_and_add_alpha_channel_png(img_front)
+
+    img_front = imread_utf8(file_front)
     img_back = file_back
 
     try:

@@ -4,25 +4,7 @@ import os
 from multipledispatch import dispatch
 
 from nft_generator.Printers import *
-
-
-def imread_utf8(file: str) -> np.ndarray:
-    """
-    opencv底层库在简体中文Windows下工作异常，所以使用此方法
-    :param file: 
-    :return:
-    """
-    img = cv.imdecode(np.fromfile(file, dtype=np.uint8), cv.IMREAD_UNCHANGED)
-    return check_and_add_alpha_channel_png(img)
-
-def check_and_add_alpha_channel_png(img: np.ndarray) -> np.ndarray:
-    x, y, chs = img.shape
-    if chs == 4:
-        return img      # do nothing
-    elif chs == 3:
-        ch0, ch1, ch2 = cv.split(img)
-        ch3 = np.full((x, y), 255, dtype=np.uint8)
-        return cv.merge((ch0, ch1, ch2, ch3))
+from nft_generator.io import *
 
 
 def img_merge_kernel_png_png(file_back: str, file_front: str) -> np.ndarray:
@@ -33,8 +15,8 @@ def img_merge_kernel_png_png(file_back: str, file_front: str) -> np.ndarray:
     :return:
     """
 
-    img_front = imread_utf8(file_front)
-    img_back = imread_utf8(file_back)
+    img_front = imread_utf8_png(file_front)
+    img_back = imread_utf8_png(file_back)
 
     try:
         return img_merge_kernel_ndarray_ndarray(img_back, img_front)
@@ -54,7 +36,7 @@ def img_merge_kernel_ndarray_png(file_back: np.ndarray, file_front: str) -> np.n
     :return:
     """
 
-    img_front = imread_utf8(file_front)
+    img_front = imread_utf8_png(file_front)
     img_back = file_back
 
     try:

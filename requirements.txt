@@ -5,3 +5,4 @@ numpy==1.23.1
 opencv-python==4.5.5.64
 pyinstaller==5.3
 twine==4.0.1
+Pillow~=9.2.0

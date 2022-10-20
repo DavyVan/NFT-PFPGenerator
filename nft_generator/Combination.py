@@ -1,9 +1,7 @@
-import cv2 as cv
 import os
 
 from nft_generator.LayerItem import LayerItem
-from nft_generator.kernels import img_merge
-from nft_generator.io import imwrite_utf8
+from nft_generator.kernels import img_merge, imwrite
 from nft_generator.Config import Config
 
 
@@ -55,7 +53,7 @@ class Combination:
 
         # write to file
         full_path = os.path.join(config.output_path, str(output_no)) + "." + config.output_format
-        imwrite_utf8(full_path, output_img, config.output_format)
+        imwrite(full_path, output_img)
 
     def __generate_metadata_enjin(self, no: int, config: Config) -> dict:
         ret = dict()

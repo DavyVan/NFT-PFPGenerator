@@ -3,6 +3,7 @@ import os
 from nft_generator.LayerItem import LayerItem
 from nft_generator.kernels import img_merge, imwrite
 from nft_generator.Config import Config
+from nft_generator.Errors import NFTGError as E
 
 
 class Combination:
@@ -42,14 +43,15 @@ class Combination:
     def render(self, output_no: int, config: Config):
         output_img = None
         if len(self.items) == 0:
-            raise ValueError("Combination: Empty combination")
+            raise E(E.ERR_RT_EMPTY_COMB)
         elif len(self.items) == 1:
-            raise ValueError("Combination: Only one layer in the combination")
+            raise E(E.ERR_RT_ONE_LAYER_COMB)
         else:
-            output_img = img_merge(self.items[-1].path, self.items[-2].path)            # the layers must be numbered from top to bottom
+            size = (config.resource_size_w, config.resource_size_h)
+            output_img = img_merge(self.items[-1].path, self.items[-2].path, size)            # the layers must be numbered from top to bottom
             if len(self.items) > 2:
                 for i in range(len(self.items)-1, -1, -1):
-                    output_img = img_merge(output_img, self.items[i].path)
+                    output_img = img_merge(output_img, self.items[i].path, size)
 
         # write to file
         full_path = os.path.join(config.output_path, str(output_no)) + "." + config.output_format
@@ -83,4 +85,4 @@ class Combination:
         elif config.metadata_standard == "opensea":
             return self.__generate_metadata_opensea(no, config)
         else:
-            raise NotImplementedError("Combination: metadata standard is not implemented.")
+            raise E(E.ERR_IO_METADATA)

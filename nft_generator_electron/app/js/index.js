@@ -15,6 +15,7 @@ let inputFolderInputEl = document.getElementById("input-folder-input");
 let inputFolderBtnEl = document.getElementById("input-folder-button");
 let outputFolderInputEl = document.getElementById("output-folder-input");
 let outputFolderBtnEl = document.getElementById("output-folder-button");
+let resourceSizeInputEl = document.getElementById("resource-size-input");
 let collectionNameInputEl = document.getElementById("collection-name-input");
 let metadataSelectEl = document.getElementById("metadata-std-select");
 let countInputEl = document.getElementById("count-input");
@@ -23,6 +24,22 @@ let startBtnEl = document.getElementById("start-button");
 let serverStatusSpinnerEl = document.getElementById("server-status-spinner");
 let serverStatusSpanEl = document.getElementById("server-status-span");
 let alertMsgSpanEl = document.getElementById("alert-msg-span");
+let excelCheckboxEl = document.getElementById("excel-checkbox");
+let metadataCheckboxEl = document.getElementById("metadata-checkbox");
+
+let inputFolderInputStep2El = document.getElementById("input-folder-input-step-2");
+let inputFolderBtnStep2El = document.getElementById("input-folder-button-step-2");
+let outputFolderInputStep2El = document.getElementById("output-folder-input-step-2");
+let deleteCheckboxStep2El = document.getElementById("delete-checkbox-step-2");
+let reorderCheckboxStep2El = document.getElementById("reorder-checkbox-step-2");
+let metadataSelectStep2El = document.getElementById("metadata-std-select-step-2");
+let alertMsgSpanStep2El = document.getElementById("alert-msg-span-step-2");
+let startBtnStep2El = document.getElementById("start-button-step-2");
+
+let step1BtnEl = document.getElementById("step-1-button");
+let step2BtnEl = document.getElementById("step-2-button");
+let step1ContainerEl = document.getElementById("step-1-container");
+let step2ContainerEl = document.getElementById("step-2-container");
 
 
 /* ------------------------------- NFGT Server ------------------------------ */
@@ -89,16 +106,71 @@ outputFolderBtnEl.addEventListener("click", () => {
     });
 });
 
-function setAlert(msg) {
-    alertMsgSpanEl.innerHTML = msg;
-    alertMsgSpanEl.classList.add("animate__animated", "animate__flash");
-    alertMsgSpanEl.addEventListener("animationend", () => {
-        alertMsgSpanEl.classList.remove("animate__animated", "animate__flash");
-    });
+metadataCheckboxEl.addEventListener("change", (ev) => {
+    if (ev.currentTarget.checked) {
+        metadataSelectEl.disabled = false;
+    } else {
+        metadataSelectEl.disabled = true;
+    }
+})
+
+function setAlert(msg, step = 1) {
+    switch(step) {
+    case 1: {
+        alertMsgSpanEl.innerHTML = msg;
+        alertMsgSpanEl.classList.add("animate__animated", "animate__flash");
+        alertMsgSpanEl.addEventListener("animationend", () => {
+            alertMsgSpanEl.classList.remove("animate__animated", "animate__flash");
+        });
+        break;
+    }
+    case 2: {
+        alertMsgSpanStep2El.innerHTML = msg;
+        alertMsgSpanStep2El.classList.add("animate__animated", "animate__flash");
+        alertMsgSpanStep2El.addEventListener("animationend", () => {
+            alertMsgSpanStep2El.classList.remove("animate__animated", "animate__flash");
+        });
+        break;
+    }
+    }
 };
 
-function removeAlert() {
-    alertMsgSpanEl.innerHTML = "";
+function removeAlert(step = 1) {
+    switch(step) {
+    case 1: {
+        alertMsgSpanEl.innerHTML = "";
+        break;
+    }
+    case 2: {
+        alertMsgSpanStep2El.innerHTML = "";
+        break;
+    }
+    }
+    
+}
+
+function disableUIStep1() {
+    startBtnEl.setAttribute("disabled", true);
+    inputFolderBtnEl.setAttribute("disabled", true);
+    outputFolderBtnEl.setAttribute("disabled", true);
+    resourceSizeInputEl.setAttribute("disabled", true);
+    collectionNameInputEl.setAttribute("disabled", true);
+    countInputEl.setAttribute("disabled", true);
+    metadataCheckboxEl.setAttribute("disabled", true);
+    step1BtnEl.setAttribute("disabled", true);
+    step2BtnEl.setAttribute("disabled", true);
+}
+
+function enableUIStep1() {
+    startBtnEl.removeAttribute("disabled");
+    inputFolderBtnEl.removeAttribute("disabled");
+    outputFolderBtnEl.removeAttribute("disabled");
+    resourceSizeInputEl.removeAttribute("disabled");
+    collectionNameInputEl.removeAttribute("disabled");
+    countInputEl.removeAttribute("disabled");
+    metadataCheckboxEl.removeAttribute("disabled");
+    step1BtnEl.removeAttribute("disabled");
+    step2BtnEl.removeAttribute("disabled");
 }
 
 /**
@@ -106,62 +178,70 @@ function removeAlert() {
     checked on the server side.
 */
 startBtnEl.addEventListener("click", async () => {
-    startBtnEl.setAttribute("disabled", true);
+    disableUIStep1();
     // reset progress bar
     progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-success", "bg-danger");
     progressBarEl.innerHTML = "";
 
     let inputFolder = inputFolderInputEl.value;
     let outputFolder = outputFolderInputEl.value;
+    let resourceSize = resourceSizeInputEl.value;
     let collectionName = collectionNameInputEl.value;
+    let enableMetadata = metadataCheckboxEl.checked;
     let metadataStd = metadataSelectEl.value;
     let count = countInputEl.value;
+    let enableExcel = excelCheckboxEl.checked;
 
     // check - inputFolder
     if (inputFolder == "" || inputFolder == undefined || inputFolder == null) {
         setAlert("请选择素材文件夹");
-        
+        enableUIStep1();
         return;
     }
     // check - outputFolder
     if (outputFolder == "" || outputFolder == undefined || outputFolder == null) {
         setAlert("请选择输出文件夹");
+        enableUIStep1();
+        return;
+    }
+    // check - resource size
+    if (resourceSize <= 0 || resourceSize % 1 !== 0) {
+        setAlert("请输入一个正整数作为素材尺寸");
+        enableUIStep1();
         return;
     }
     // check - collectionName
     if (collectionName == "" || collectionName == undefined || collectionName == null) {
         setAlert("请输入藏品系列名称");
+        enableUIStep1();
         return;
     }
-    // check - metadataStd
-    let enableMetadata = (metadataStd != "none" ? true : false);
-    metadataStd = (metadataStd == "enjin" ? "enjin" : "opensea");
     // check - count
     if (count <= 0 || count % 1 !== 0) {
         setAlert("请输入一个正整数作为藏品数量");
+        enableUIStep1();
         return;
     }
-    console.log("input check pass");
-    console.log(inputFolder);
-    console.log(outputFolder);
-    console.log(collectionName);
-    console.log("%s %s", enableMetadata, metadataStd);
-    console.log(count);
+
+    let params = {
+        "context_id": "233",
+        "config": {
+            "path": inputFolder,
+            "count": Number(count),
+            "output-path": outputFolder,
+            "sep": ".",
+            "meta-std": metadataStd,
+            "collection-name": collectionName,
+            "resource-size": Number(resourceSize)
+        },
+        "enable_render": true,
+        "enable_metadata": enableMetadata,
+        "enable_excel": enableExcel
+    };
+    console.log(params);
 
     try {
-        let response = await axios.post(baseURL + "new", {
-            "context_id": "233",
-            "config": {
-                "path": inputFolder,
-                "count": Number(count),
-                "output-path": outputFolder,
-                "sep": ".",
-                "meta-std": metadataStd,
-                "collection-name": collectionName
-            },
-            "enable_render": true,
-            "enable_metadata": enableMetadata
-        });
+        let response = await axios.post(baseURL + "new", params);
 
         if (response.data.success) {
             // check progress
@@ -185,12 +265,12 @@ startBtnEl.addEventListener("click", async () => {
                                 }
                             } else {
                                 if (jobResponse.data.data.success) {        // if the NFT generation is finished successfully
-                                    startBtnEl.removeAttribute("disabled");
+                                    enableUIStep1();
                                     progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated");
                                     progressBarEl.classList.add("bg-success");
                                     progressBarEl.innerHTML += " == 执行成功";
                                 } else {        // if the NFT generation failed
-                                    startBtnEl.removeAttribute("disabled");
+                                    enableUIStep1();
                                     progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated");
                                     progressBarEl.classList.add("bg-danger");
                                     progressBarEl.innerHTML += " == 执行失败";
@@ -210,10 +290,61 @@ startBtnEl.addEventListener("click", async () => {
             }, 1000);
         } else {
             setAlert(response.data.message);
-            startBtnEl.removeAttribute("disabled");
+            enableUIStep1();
         }
     } catch (e) {
         setAlert(e.message);
-        startBtnEl.removeAttribute("disabled");
+        enableUIStep1();
     }
 });
+
+/* ----------------------------------- 第二步 ---------------------------------- */
+inputFolderBtnStep2El.addEventListener("click", () => {
+    remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
+        title: "选择第一步生成的 Excel 文件",
+        buttonLabel: "选择",
+        properties: ["openFile"],
+        filters: [{name: "Excel 文件", extensions: ["xlsx"]}]
+    }).then((value) => {
+        let fileNames = value.filePaths;
+        if (value.canceled) {
+            console.log("inputFolderBtnStep2El-click: no Excel file selected.");
+            return;     // do nothing
+        }
+    
+        let fileName = fileNames[0];    // with filename and ext
+    
+        // update DOM
+        inputFolderInputStep2El.value = fileName;
+        outputFolderInputStep2El.value = path.dirname(fileName);      // always auto fill
+    });
+});
+
+let currentStep = 1;
+step2BtnEl.addEventListener("click", (ev) => {
+    if (currentStep == 1) {
+        step1ContainerEl.hidden = true;
+        step2ContainerEl.hidden = false;
+        currentStep = 2;
+
+        // change the button style
+        step1BtnEl.classList.remove("btn-primary");
+        step1BtnEl.classList.add("btn-outline-primary");
+        step2BtnEl.classList.remove("btn-outline-primary");
+        step2BtnEl.classList.add("btn-primary");
+    }
+});
+
+step1BtnEl.addEventListener("click", (ev) => {
+    if (currentStep == 2) {
+        step2ContainerEl.hidden = true;
+        step1ContainerEl.hidden = false;
+        currentStep = 1;
+
+        // change the button style
+        step1BtnEl.classList.remove("btn-outline-primary");
+        step1BtnEl.classList.add("btn-primary");
+        step2BtnEl.classList.remove("btn-primary");
+        step2BtnEl.classList.add("btn-outline-primary");
+    }
+})

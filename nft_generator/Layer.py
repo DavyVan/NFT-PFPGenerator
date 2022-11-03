@@ -2,7 +2,7 @@ import os
 import random
 
 from nft_generator.LayerItem import LayerItem
-from nft_generator.constants import SUPPORTED_INPUT_FORMAT
+from nft_generator.Constants import SUPPORTED_INPUT_FORMAT
 from nft_generator.Printers import *
 
 

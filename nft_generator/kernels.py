@@ -2,16 +2,11 @@ from multipledispatch import dispatch
 from PIL import Image
 
 from nft_generator.Printers import *
+from nft_generator.Errors import NFTGError as E
 
 
-@dispatch(str, str)
-def img_merge(file_back: str, file_front: str) -> Image.Image:
-    """
-    用于png合成png的kernel，一次合成两个图层
-    :param file_back:
-    :param file_front:
-    :return:
-    """
+@dispatch(str, str, tuple)
+def img_merge(file_back: str, file_front: str, target_size: tuple[int, int]) -> Image.Image:
 
     img_front = Image.open(file_front)
     __check_alpha_channel(img_front)
@@ -19,7 +14,7 @@ def img_merge(file_back: str, file_front: str) -> Image.Image:
     __check_alpha_channel(img_back)
 
     try:
-        return img_merge(img_back, img_front)
+        return img_merge(img_back, img_front, target_size)
     except ValueError as e:
         print_error("img_merge_kernel_png_png: ")
         print_error(str(e.args))
@@ -28,21 +23,15 @@ def img_merge(file_back: str, file_front: str) -> Image.Image:
         print_aborted()
 
 
-@dispatch(Image.Image, str)
-def img_merge(file_back: Image.Image, file_front: str) -> Image.Image:
-    """
-    用于ndarray合成png的kernel，一次合成两个图层
-    :param file_back: 已经读取的，或者刚刚处理生成的图片数据
-    :param file_front: 图片路径
-    :return:
-    """
+@dispatch(Image.Image, str, tuple)
+def img_merge(file_back: Image.Image, file_front: str, target_size: tuple[int, int]) -> Image.Image:
 
     img_front = Image.open(file_front)
     __check_alpha_channel(img_front)
     img_back = file_back
 
     try:
-        return img_merge(img_back, img_front)
+        return img_merge(img_back, img_front, target_size)
     except ValueError as e:
         print_error("img_merge_kernel_ndarray_png: ")
         print_error(str(e.args))
@@ -50,20 +39,15 @@ def img_merge(file_back: Image.Image, file_front: str) -> Image.Image:
         print_aborted()
 
 
-@dispatch(Image.Image, Image.Image)
-def img_merge(file_back: Image.Image, file_front: Image.Image) -> Image.Image:
-    """
-    用于图片合成的kernel，一次合成两个图层
-    :param file_back: 底层图片的数据
-    :param file_front: 上层图片的数据
-    :return:
-    """
+@dispatch(Image.Image, Image.Image, tuple)
+def img_merge(file_back: Image.Image, file_front: Image.Image, target_size: tuple[int, int]) -> Image.Image:
+
     img_front = file_front
     img_back = file_back
 
     # check dims
-    if img_back.size != img_front.size:
-        raise ValueError("Dimensions of back and front image do not match.", img_back.size, img_front.size)
+    if img_back.size != target_size or img_front.size != target_size:
+        raise E(E.ERR_IO_SIZE_MATCH, target_size, img_back.size, img_front.size)
 
     img_out = Image.alpha_composite(img_back, img_front)
 

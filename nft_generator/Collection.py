@@ -3,11 +3,14 @@ import json
 import time
 from typing import Union
 from multiprocessing.connection import Connection
+import xlsxwriter
 
 from nft_generator.Printers import *
 from nft_generator.Config import Config
 from nft_generator.Layer import Layer
 from nft_generator.Combination import Combination
+from nft_generator.Errors import NFTGError as E
+from nft_generator.Constants import EXCEL_SELECTED_YES_STR, EXCEL_SELECTED_NO_STR
 
 
 class Collection:
@@ -29,7 +32,7 @@ class Collection:
 
         # check the root dir
         if not os.path.isdir(self.config.path):
-            raise FileNotFoundError("Collection: The base directory does not exist.")
+            raise E(E.ERR_IO_PATH_NOT_EXIST)
 
         # get all the entries, including files and subdirs
         entries = os.listdir(self.config.path)
@@ -58,13 +61,13 @@ class Collection:
             entry_selected.append(Layer(layer_number, layer_name, os.path.join(self.config.path, entry)))
 
         if len(entry_selected) == 0:
-            raise FileNotFoundError("Collection: did not find available folders")
+            raise E(E.ERR_IO_NO_AVAL_LAYER)
 
         # sort and check the numbers if they are in sequence
         _sorted = sorted(entry_selected, key=lambda l: l.index)
         for i in range(len(_sorted)):
             if i+1 != _sorted[i].index:
-                raise ValueError("Collection: The numbers of subdirs are not in sequence")
+                raise E(E.ERR_IO_LAYER_SEQ)
 
         self.layers = _sorted
         print_ok_with_prefix("Checking folders...")
@@ -137,6 +140,32 @@ class Collection:
             json.dump(metadata_all, fd, indent=2, ensure_ascii=False)
 
         print_ok_with_prefix("Generating metadata...")
+
+    def generate_excel(self):
+        with xlsxwriter.Workbook(os.path.join(self.config.output_path, "stats.xlsx")) as workbook:
+            worksheet = workbook.add_worksheet()
+
+            # headings
+            headings = ["编号", "是否选用"]
+            for l in self.layers:
+                headings.append(l.name)
+            worksheet.write_row(0, 0, headings)
+
+            # data
+            for i, combo in enumerate(self.combinations):
+                data = [i+1, EXCEL_SELECTED_YES_STR]
+                for item in combo.items:
+                    data.append(item.item_name)
+                worksheet.write_row(i+1, 0, data)
+
+            # set validator(list) for col 1 (zero indexed)
+            worksheet.data_validation(1, 1, len(self.combinations), 1, {
+                "validate": "list",
+                "source": [EXCEL_SELECTED_YES_STR, EXCEL_SELECTED_NO_STR]
+            })
+
+            # set filter for col 1
+            worksheet.autofilter(0, 1, len(self.combinations), 1)
 
     def get_progress(self) -> (int, int):
         """

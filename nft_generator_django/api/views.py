@@ -14,10 +14,16 @@ def new(request: HttpRequest):
     ret = dict()
     try:
         jsonobj = json.loads(request.body)
-        context_manager.new_and_start_context(str(jsonobj["context_id"]), json.dumps(jsonobj["config"]), jsonobj["enable_render"], jsonobj["enable_metadata"])
+        context_manager.new_and_start_context(
+            str(jsonobj["context_id"]),
+            json.dumps(jsonobj["config"]),
+            jsonobj["enable_render"],
+            jsonobj["enable_metadata"],
+            jsonobj["enable_excel"]
+        )
     except Exception as e:
         ret["success"] = False
-        ret["message"] = repr(e)
+        ret["message"] = str(e)
     else:
         ret["success"] = True
         ret["message"] = ""
@@ -33,7 +39,7 @@ def check(request: HttpRequest):
         success, executing, error_msg, progress, total = context_manager.get_progress(jsonobj["context_id"])
     except Exception as e:
         ret["success"] = False
-        ret["message"] = repr(e)
+        ret["message"] = str(e)
         ret["data"] = ""
     else:
         ret["success"] = True

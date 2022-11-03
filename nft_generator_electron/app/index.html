@@ -3,20 +3,31 @@
     <head>
         <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="../node_modules/animate.css/animate.min.css">
+        <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
         <style>
-            #overlay {
-            height: 100%;
-            width: 100%;
-            position: fixed;
-            z-index: 999;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: gainsboro;
-            opacity: 1;
-            display: table;
+            /* 公共部分 */
+            body {
+                user-select: none;
             }
+
+            .navbar {
+                background-color: #e3f2fd;
+            }
+
+            #overlay {
+                height: 100%;
+                width: 100%;
+                position: fixed;
+                z-index: 999;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: gainsboro;
+                opacity: 1;
+                display: table;
+            }
+
             #overlay div {
                 display: table-cell;
             }
@@ -25,20 +36,34 @@
                 height: 100%;
             }
 
-            .sticky-bottom {
+            .fixed-bottom {
                 z-index: 998;
             }
 
             .spinner-grow {
                 --bs-spinner-animation-speed: 5s;
             }
+
+            .row>* {
+                --bs-gutter-y: 0;
+            }
         </style>
     </head>
     <body>
-        <div class="container">
-            <div class="overlay" id="overlay">
-                <div class="align-middle text-center">正在启动图像处理服务……<br>这个过程大约需要十秒钟</div>
+        <!-- --------------------------------- 导航栏 --------------------------------- -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="d-flex">
+                <span class="navbar-brand ms-4">请选择生成步骤：</span>
+                <button class="btn btn-primary" id="step-1-button">第一步：生成图片</button>
+                <button class="btn btn-outline-primary ms-4" id="step-2-button">第二步：生成元数据</button>
             </div>
+        </nav>
+        <!-- -------------------------------- 启动界面 --------------------------------- -->
+        <div class="overlay" id="overlay">
+            <div class="align-middle text-center">正在启动图像处理服务……<br>这个过程大约需要十秒钟</div>
+        </div>
+        <!-- --------------------------------- 第一步 --------------------------------- -->
+        <div class="container" id="step-1-container">
             <div class="row mt-3">
                 <div class="input-group col">
                     <span class="input-group-text">素材文件夹</span>
@@ -54,28 +79,50 @@
                 </div>
             </div>
             <div class="row g-2 mt-3">
+                <div class="col-3">
+                    <div class="form-floating">
+                        <input type="number" class="form-control" id="resource-size-input" data-bs-toggle="tooltip" data-bs-title="目前要求素材为正方形，且所有图层的素材大小均一致。">
+                        <label for="resource-size-input">素材大小（像素）</label>
+                    </div>
+                </div>
                 <div class="col">
                     <div class="form-floating">
                         <input type="text" class="form-control" id="collection-name-input">
                         <label for="collection-name-input">藏品系列名称</label>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="form-floating">
-                        <select class="form-select" id="metadata-std-select">
-                            <option value="none" selected>不生成 Metadata</option>
-                            <option value="opensea">Opensea（推荐）</option>
-                            <option value="enjin">Enjin（ERC1155）</option>
-                        </select>
-                        <label for="metadata-std-select">Metadata 标准</label>
-                    </div>
-                </div>
-            </div>
-            <div class="row mt-3 justify-content-center">
-                <div class="col-5">
+                <div class="col-3">
                     <div class="form-floating">
                         <input type="number" class="form-control" id="count-input">
                         <label for="count-input">生成藏品数量</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 mt-3 justify-content-center">
+                <div class="col-4 mt-1 ms-1">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" value="" id="excel-checkbox" checked disabled>
+                        <label class="form-check-label" for="excel-checkbox" data-bs-toggle="tooltip" data-bs-placement="top"
+                            data-bs-title="内含图层信息，便于筛选。也是第二步单独生成元数据所必需。">
+                            输出 Excel 表格
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" value="" id="metadata-checkbox">
+                        <label class="form-check-label" for="metadata-checkbox" data-bs-toggle="tooltip" data-bs-placement="top"
+                        data-bs-title="您可以在这里同时输出 JSON 格式的元数据；您也可以使用 Excel 表格进行人工筛选之后，在第二步单独生成元数据。">
+                            输出元数据（JSON）
+                        </label>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="form-floating">
+                        <select class="form-select" id="metadata-std-select" disabled>
+                            <!-- <option value="none" selected>请选择</option> -->
+                            <option value="opensea" selected>Opensea（推荐）</option>
+                            <option value="enjin">Enjin（ERC1155）</option>
+                        </select>
+                        <label for="metadata-std-select">Metadata 标准</label>
                     </div>
                 </div>
             </div>
@@ -92,11 +139,75 @@
                     <button type="button" class="btn btn-primary" style="width: 100%;" id="start-button">开始</button>
                 </div>
             </div>
-            <div class="fixed-bottom bg-light d-flex align-items-center" style="height: 30px;">
-                <span class="spinner-grow text-danger spinner-grow-sm m-2" role="status" id="server-status-spinner"></span>
-                <span class="p-0 text-black-50" id="server-status-span">图像处理服务状态未知</span>
+        </div>
+        <!-- --------------------------------- 第二步 --------------------------------- -->
+        <div class="container" id="step-2-container" hidden>
+            <div class="row mt-3">
+                <div class="input-group col">
+                    <span class="input-group-text">Excel 文件</span>
+                    <input type="text" class="form-control" placeholder="请点击右侧按钮选择→→→" id="input-folder-input-step-2"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="即第一步所生成的 Excel，文件夹中必须同时包含图片（请勿更改文件名和序号）。" readonly>
+                    <button type="button" class="btn btn-primary" id="input-folder-button-step-2">浏览…</button>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="input-group col">
+                    <span class="input-group-text">输出文件夹</span>
+                    <input type="text" class="form-control" placeholder="会根据 Excel 文件位置自动设置" id="output-folder-input-step-2" readonly>
+                    <!-- <button type="button" class="btn btn-primary" id="output-folder-button">浏览…</button> -->
+                </div>
+            </div>
+            <div class="row g-2 mt-3 justify-content-center">
+                <div class="col-4 mt-1 ms-1">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" value="" id="delete-checkbox-step-2" checked>
+                        <label class="form-check-label" for="delete-checkbox" data-bs-toggle="tooltip" data-bs-placement="top"
+                            data-bs-title="根据 Excel 中的记录清理未被挑选的图片文件，被删除的文件将被移入回收站（Win & Mac）。">
+                            清理不需要的图片
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" value="" id="reorder-checkbox-step-2" checked>
+                        <label class="form-check-label" for="reorder-checkbox" data-bs-toggle="tooltip" data-bs-placement="top"
+                        data-bs-title="跳过未被挑选的图片重新进行编号。">
+                            重新排序图片
+                        </label>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="form-floating">
+                        <select class="form-select" id="metadata-std-select-step-2">
+                            <!-- <option value="none" selected>请选择</option> -->
+                            <option value="opensea" selected>Opensea（推荐）</option>
+                            <option value="enjin">Enjin（ERC1155）</option>
+                        </select>
+                        <label for="metadata-std-select-step-2">Metadata 标准</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-5 justify-content-center">
+                <div class="col-auto">
+                    <span class="text-danger" id="alert-msg-span-step-2">填写完毕后点击“开始”</span>
+                </div>
+            </div>
+            <div class="row mt-1 justify-content-center" style="margin-left: 0px; margin-right: 0px;">
+                <div class="col-2" style="padding-right: 0px;">
+                    <button type="button" class="btn btn-primary" style="width: 100%;" id="start-button-step-2">
+                        开始
+                    </button>
+                </div>
             </div>
         </div>
+        <!-- --------------------------------- 状态栏 --------------------------------- -->
+        <div class="fixed-bottom bg-light d-flex align-items-center" style="height: 30px;">
+            <span class="spinner-grow text-danger spinner-grow-sm m-2" role="status" id="server-status-spinner"></span>
+            <span class="p-0 text-black-50" id="server-status-span">图像处理服务状态未知</span>
+        </div>
+        <!-- --------------------------------- JS ---------------------------------- -->
+        <script>
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        </script>
         <script src="js/index.js"></script>
     </body>
 </html>

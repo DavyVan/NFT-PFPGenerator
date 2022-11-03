@@ -6,6 +6,7 @@ sys.path.insert(0, p)
 
 from nft_generator.Collection import Collection
 from nft_generator.Printers import *
+from nft_generator.Errors import NFTGError as E
 
 
 class Context:
@@ -20,11 +21,11 @@ class Context:
         self.parent_conn = None                         # type: mp.connection.Connection
         # self.destroyable = False                        # type: bool
 
-    def run(self, enable_render: bool, enable_metadata: bool):
-        self.thread = mt.Thread(target=self.__run_thread, args=(enable_render, enable_metadata))
+    def run(self, enable_render: bool, enable_metadata: bool, enable_excel: bool):
+        self.thread = mt.Thread(target=self.__run_thread, args=(enable_render, enable_metadata, enable_excel))
         self.thread.start()
 
-    def __run_thread(self, enable_render: bool, enable_metadata: bool):
+    def __run_thread(self, enable_render: bool, enable_metadata: bool, enable_excel: bool):
         """
         This function runs in the child thread
         :param enable_render:
@@ -47,28 +48,34 @@ class Context:
                             raise EOFError("Context: Finished.")
                         progress, total = self.collection.inc_progress()
                         if progress != i_plus_one:
-                            raise ValueError("Context: Progress interrupted!")
+                            raise E(E.ERR_RT_REND_INT)
                 except EOFError:
                     progress, total = self.collection.get_progress()
                     print_info("Pipe closed: %d, %d." % (progress, total))
                     if progress != total:
-                        raise EOFError("Context: The process terminated early.")
-                except ValueError as e:
-                    raise e
+                        raise E(E.ERR_RT_REND_TERM_EARLY)
+                # pass E
 
             if enable_metadata:
                 self.collection.generate_metadata()
-        except Exception as e:
-            self.executing = False
-            self.error_msg = str(e)
 
+            if enable_excel:
+                self.collection.generate_excel()
+        except E as e:
+            self.error_msg = E.errmsg(e)
+            self.success = False
+        except Exception as e:
+            self.error_msg = str(e)
+            self.success = False
+        else:
+            self.success = True
+
+        # kill anyway
         if self.process is not None and self.process.is_alive():
             self.process.kill()
             self.process = None
             self.parent_conn.close()
-
         self.executing = False
-        self.success = True
 
 
 

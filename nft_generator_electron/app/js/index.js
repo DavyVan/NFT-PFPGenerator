@@ -26,6 +26,7 @@ let serverStatusSpanEl = document.getElementById("server-status-span");
 let alertMsgSpanEl = document.getElementById("alert-msg-span");
 let excelCheckboxEl = document.getElementById("excel-checkbox");
 let metadataCheckboxEl = document.getElementById("metadata-checkbox");
+let startingIndexInputEl = document.getElementById("starting-index-input");
 
 let inputFolderInputStep2El = document.getElementById("input-folder-input-step-2");
 let inputFolderBtnStep2El = document.getElementById("input-folder-button-step-2");
@@ -35,6 +36,7 @@ let reorderCheckboxStep2El = document.getElementById("reorder-checkbox-step-2");
 let metadataSelectStep2El = document.getElementById("metadata-std-select-step-2");
 let alertMsgSpanStep2El = document.getElementById("alert-msg-span-step-2");
 let startBtnStep2El = document.getElementById("start-button-step-2");
+let collectionNameInputStep2El = document.getElementById("collection-name-input-step-2");
 
 let step1BtnEl = document.getElementById("step-1-button");
 let step2BtnEl = document.getElementById("step-2-button");
@@ -45,24 +47,22 @@ let step2ContainerEl = document.getElementById("step-2-container");
 /* ------------------------------- NFGT Server ------------------------------ */
 
 setInterval(() => {
-    try {
-        axios.get(baseURL + "ping").then((response) => {
-            // console.log("index: NFGT Server is running. pid: %d", response.data.data.pid);
-            ipcRenderer.invoke("pid", response.data.data.pid);
-            overlayDivEl.hidden = true;
-            serverStatusSpinnerEl.classList.remove("text-danger");
-            serverStatusSpinnerEl.classList.add("text-success");
-            serverStatusSpanEl.innerHTML = "图像处理服务运行中";
-        });
-    } catch (error) {
+    axios.get(baseURL + "ping").then((response) => {
+        // console.log("index: NFGT Server is running. pid: %d", response.data.data.pid);
+        ipcRenderer.invoke("pid", response.data.data.pid);
+        overlayDivEl.hidden = true;
+        serverStatusSpinnerEl.classList.remove("text-danger");
+        serverStatusSpinnerEl.classList.add("text-success");
+        serverStatusSpanEl.innerHTML = "图像处理服务运行中";
+    }).catch(() => {
         serverStatusSpinnerEl.classList.remove("text-success");
         serverStatusSpinnerEl.classList.add("text-danger");
         serverStatusSpanEl.innerHTML = "图像处理服务状态未知";
-    }
+    });
 }, 5*1000);
 
 
-/* -------------------------------- Listeners ------------------------------- */
+/* -------------------------------- 第一步 ------------------------------- */
 
 inputFolderBtnEl.addEventListener("click", () => {
     remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
@@ -157,6 +157,7 @@ function disableUIStep1() {
     collectionNameInputEl.setAttribute("disabled", true);
     countInputEl.setAttribute("disabled", true);
     metadataCheckboxEl.setAttribute("disabled", true);
+    startingIndexInputEl.setAttribute("disabled", true);
     step1BtnEl.setAttribute("disabled", true);
     step2BtnEl.setAttribute("disabled", true);
 }
@@ -169,6 +170,7 @@ function enableUIStep1() {
     collectionNameInputEl.removeAttribute("disabled");
     countInputEl.removeAttribute("disabled");
     metadataCheckboxEl.removeAttribute("disabled");
+    startingIndexInputEl.removeAttribute("disabled");
     step1BtnEl.removeAttribute("disabled");
     step2BtnEl.removeAttribute("disabled");
 }
@@ -179,6 +181,7 @@ function enableUIStep1() {
 */
 startBtnEl.addEventListener("click", async () => {
     disableUIStep1();
+    removeAlert(1);
     // reset progress bar
     progressBarEl.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-success", "bg-danger");
     progressBarEl.innerHTML = "";
@@ -191,6 +194,7 @@ startBtnEl.addEventListener("click", async () => {
     let metadataStd = metadataSelectEl.value;
     let count = countInputEl.value;
     let enableExcel = excelCheckboxEl.checked;
+    let startingIndex = startingIndexInputEl.value;
 
     // check - inputFolder
     if (inputFolder == "" || inputFolder == undefined || inputFolder == null) {
@@ -222,6 +226,12 @@ startBtnEl.addEventListener("click", async () => {
         enableUIStep1();
         return;
     }
+    // check - starting index
+    if (startingIndex <= 0 || startingIndex % 1 !== 0) {
+        setAlert("请输入一个正整数作为藏品起始编号");
+        enableUIStep1();
+        return;
+    }
 
     let params = {
         "context_id": "233",
@@ -232,7 +242,8 @@ startBtnEl.addEventListener("click", async () => {
             "sep": ".",
             "meta-std": metadataStd,
             "collection-name": collectionName,
-            "resource-size": Number(resourceSize)
+            "resource-size": Number(resourceSize),
+            "starting-index": Number(startingIndex)
         },
         "enable_render": true,
         "enable_metadata": enableMetadata,
@@ -318,6 +329,88 @@ inputFolderBtnStep2El.addEventListener("click", () => {
         inputFolderInputStep2El.value = fileName;
         outputFolderInputStep2El.value = path.dirname(fileName);      // always auto fill
     });
+});
+
+function disableUIStep2() {
+    step1BtnEl.setAttribute("disabled", true);
+    step2BtnEl.setAttribute("disabled", true);
+    inputFolderBtnStep2El.setAttribute("disabled", true);
+    deleteCheckboxStep2El.setAttribute("disabled", true);
+    reorderCheckboxStep2El.setAttribute("disabled", true);
+    metadataSelectStep2El.setAttribute("disabled", true);
+    startBtnStep2El.setAttribute("disabled", true);
+}
+
+function enableUIStep2() {
+    step1BtnEl.removeAttribute("disabled");
+    step2BtnEl.removeAttribute("disabled");
+    inputFolderBtnStep2El.removeAttribute("disabled");
+    deleteCheckboxStep2El.removeAttribute("disabled");
+    reorderCheckboxStep2El.removeAttribute("disabled");
+    metadataSelectStep2El.removeAttribute("disabled");
+    startBtnStep2El.removeAttribute("disabled");
+}
+
+/**
+    we only check the existence of the input fields. The correctness of them will be
+    checked on the server side.
+*/
+startBtnStep2El.addEventListener("click", async () => {
+    disableUIStep2();
+    removeAlert(2);
+
+    let inputFolder = inputFolderInputStep2El.value;
+    let outputFolder = outputFolderInputStep2El.value;
+    let metadataStd = metadataSelectStep2El.value;
+    let enableDelete = deleteCheckboxStep2El.checked;
+    let enableReorder = reorderCheckboxStep2El.checked;
+    let collectionName = collectionNameInputStep2El.value
+
+    // check - inputFolder
+    if (inputFolder == "" || inputFolder == undefined || inputFolder == null) {
+        setAlert("请选择 Excel 文件", 2);
+        enableUIStep2();
+        return;
+    }
+    // check - outputFolder
+    if (outputFolder == "" || outputFolder == undefined || outputFolder == null) {
+        setAlert("请选择输出文件夹", 2);
+        enableUIStep2();
+        return;
+    }
+    // check - collection name
+    if (collectionName == "" || collectionName == undefined || collectionName == null) {
+        setAlert("请输入藏品名称", 2);
+        enableUIStep2();
+        return;
+    }
+
+    let params = {
+        "config": {
+            "path": inputFolder,
+            "output-path": outputFolder,
+            "meta-std": metadataStd,
+            "collection-name": collectionName
+        },
+        "enable-delete": enableDelete,
+        "enable-reorder": enableReorder
+    };
+    console.log(params);
+
+    try {
+        let response = await axios.post(baseURL + "from_excel", params);
+
+        if (response.data.success) {
+            enableUIStep2();
+            setAlert("执行成功，为 " + response.data.data.count + " 个藏品生成元数据", 2);
+        } else {
+            setAlert("执行失败：" + response.data.message, 2);
+            enableUIStep2();
+        }
+    } catch (e) {
+        setAlert(e.message, 2);
+        enableUIStep2();
+    }
 });
 
 let currentStep = 1;

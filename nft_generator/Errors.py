@@ -15,12 +15,15 @@ class NFTGError(Exception):
     ERR_IO_PATH_NOT_EXIST   = 107  # type: Final[int]
     ERR_IO_NO_AVAL_LAYER    = 108  # type: Final[int]
     ERR_IO_LAYER_SEQ        = 109  # type: Final[int]
+    ERR_IO_STARTING         = 110  # type: Final[int]
+    ERR_IO_NO_ITEM_IN_LAYER = 111  # type: Final[int]
 
     # runtime: render
     ERR_RT_EMPTY_COMB       = 201  # type: Final[int]
     ERR_RT_ONE_LAYER_COMB   = 202  # type: Final[int]
     ERR_RT_REND_TERM_EARLY  = 203  # type: Final[int]
     ERR_RT_REND_INT         = 204  # type: Final[int]
+    ERR_RT_COUNT_EXCEED     = 205  # type: Final[int]
 
     ERR_MSG = {
         # 101
@@ -50,6 +53,12 @@ class NFTGError(Exception):
         # 109
         ERR_IO_LAYER_SEQ:
             "图层文件夹没有按顺序整理",
+        # 110
+        ERR_IO_STARTING:
+            "请提供一个正整数作为藏品起始编号",
+        # 111
+        ERR_IO_NO_ITEM_IN_LAYER:
+            "存在没有素材的图层，或者素材没有被正确识别",
         # 201
         ERR_RT_EMPTY_COMB:
             "存在不包含任何图层的组合",
@@ -62,10 +71,13 @@ class NFTGError(Exception):
         # 204
         ERR_RT_REND_INT:
             "渲染过程存在中断",
+        # 205
+        ERR_RT_COUNT_EXCEED:
+            "生成藏品的数量大于理论上限",
     }  # type: Final[dict[int, str]]
 
     @classmethod
-    @dispatch(int)
+    @dispatch(type, int)
     def errmsg(cls, code: int) -> str:
         try:
             return cls.ERR_MSG[code]
@@ -73,7 +85,7 @@ class NFTGError(Exception):
             return "N/A"
 
     @classmethod
-    @dispatch(Exception)
+    @dispatch(type, Exception)
     def errmsg(cls, e: Exception) -> str:
         if isinstance(e, cls):
             code, *args = e.args

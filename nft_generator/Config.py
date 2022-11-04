@@ -45,6 +45,7 @@ class Config:
                                 default="opensea", type=str)
             parser.add_argument("-n", "--collection-name", help="The collection name.", default="Test-NFT", type=str)
             parser.add_argument("--size", help="The dimensions of resource pictures (in pixels).", type=int)
+            parser.add_argument("--starting", help="The starting index, which means that the # of the first NFT shall be this number.", default=1, type=int)
             args = parser.parse_args()
 
             self.path = args.path  # will verify later
@@ -56,6 +57,7 @@ class Config:
             self.metadata_name = args.collection_name
             self.resource_size_w = args.size
             self.resource_size_h = self.resource_size_w
+            self.starting_index = args.starting
         else:
             jsondict = json.loads(jsonstr)
 
@@ -79,22 +81,31 @@ class Config:
                 self.output_format = jsondict["output-format"]
             except KeyError:
                 self.output_format = "png"
+
             try:
                 self.output_path = jsondict["output-path"]
             except KeyError:
                 self.output_path = "."
+
             try:
                 self.subdir_sep = jsondict["sep"]
             except KeyError:
                 self.subdir_sep = " "
+
             try:
                 self.metadata_standard = jsondict["meta-std"]
             except KeyError:
                 self.metadata_standard = "opensea"
+
             try:
                 self.metadata_name = jsondict["collection-name"]
             except KeyError:
                 self.metadata_name = "Test-NFT"
+
+            try:
+                self.starting_index = jsondict["starting-index"]
+            except KeyError:
+                self.starting_index = 1
 
         # path
         print_info("Path: " + self.path)
@@ -129,5 +140,10 @@ class Config:
         if self.resource_size_w <= 0 or self.resource_size_h <= 0:
             raise NFTGError(NFTGError.ERR_IO_RESOURCE_SIZE)
         print_info("Resource Size: " + str(self.resource_size_w) + "x" + str(self.resource_size_h))
+
+        # starting index
+        if self.starting_index <= 0:
+            raise NFTGError(NFTGError.ERR_IO_STARTING)
+        print_info("Starting Index: %d" % self.starting_index)
 
         print_ok_with_prefix("Parsing arguments...")

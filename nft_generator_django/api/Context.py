@@ -1,3 +1,4 @@
+import json
 import threading as mt
 import multiprocessing as mp
 import sys, os
@@ -43,12 +44,19 @@ class Context:
                 self.process.start()
                 try:
                     while True:
-                        i_plus_one = self.parent_conn.recv()
-                        if i_plus_one == -1:
-                            raise EOFError("Context: Finished.")
-                        progress, total = self.collection.inc_progress()
-                        if progress != i_plus_one:
-                            raise E(E.ERR_RT_REND_INT)
+                        jsonobj = json.loads(self.parent_conn.recv())
+                        if jsonobj["success"] == False:
+                            if jsonobj["code"] != 0:
+                                raise E(jsonobj["code"], *jsonobj["data"])
+                            else:
+                                raise Exception(jsonobj["message"])
+                        else:
+                            i_plus_one = jsonobj["data"]
+                            if i_plus_one == -1:
+                                raise EOFError("Context: Finished.")
+                            progress, total = self.collection.inc_progress()
+                            if progress != i_plus_one:
+                                raise E(E.ERR_RT_REND_INT)
                 except EOFError:
                     progress, total = self.collection.get_progress()
                     print_info("Pipe closed: %d, %d." % (progress, total))

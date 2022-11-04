@@ -33,3 +33,5 @@ SUPPORTED_METADATA_STD = [
 
 EXCEL_SELECTED_YES_STR = "是"                # type: Final[str]
 EXCEL_SELECTED_NO_STR = "否"                 # type: Final[str]
+EXCEL_SEQ_STR = "编号"                        # type: Final[str]
+EXCEL_SELECTED_STR = "是否选用"                # type: Final[str]

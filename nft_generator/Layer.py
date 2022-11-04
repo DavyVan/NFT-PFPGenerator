@@ -4,6 +4,7 @@ import random
 from nft_generator.LayerItem import LayerItem
 from nft_generator.Constants import SUPPORTED_INPUT_FORMAT
 from nft_generator.Printers import *
+from nft_generator.Errors import NFTGError as E
 
 
 class Layer:
@@ -27,6 +28,10 @@ class Layer:
                 print_warning("%s is not a supported file, skipped." % f)
                 continue
             self.items.append(LayerItem(self.name, os.path.join(self.path, f)))
+
+        # raise if no item in this layer
+        if len(self.items) == 0:
+            raise E(E.ERR_IO_NO_ITEM_IN_LAYER, self.name, self.path)
 
         print_info("new Layer: NO.%d %s %d items, %s" % (self.index, self.name, len(self.items), self.path))
 
